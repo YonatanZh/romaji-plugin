@@ -1,38 +1,43 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import * as wanakana from 'wanakana';
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface RomajiPluginSettings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: RomajiPluginSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class RomajiPlugin extends Plugin {
+	settings: RomajiPluginSettings;
+	pluginIndicator: HTMLElement;
+	isPluginOn = true;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+		this.pluginIndicator = this.addStatusBarItem();
+		this.updateIndicator();
+
+
+
+
+
+
+
+
+
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'open-sample-modal-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
+				// opens up a new window
 				new SampleModal(this.app).open();
 			}
 		});
@@ -41,6 +46,8 @@ export default class MyPlugin extends Plugin {
 			id: 'sample-editor-command',
 			name: 'Sample editor command',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
+				// This will replace the current selection in the editor with the text 'Sample Editor Command'
+				// and log the current selection to the console
 				console.log(editor.getSelection());
 				editor.replaceSelection('Sample Editor Command');
 			}
@@ -65,19 +72,40 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+
+		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
+		// when pressing the status bar item, the plugin will toggle the isPluginOn variable
+		this.registerDomEvent(this.pluginIndicator, 'click', (evt: MouseEvent) => {
+			this.isPluginOn = !this.isPluginOn;
+			this.updateIndicator();
+			console.log(this.isPluginOn);
+		});
+
+
+
+
+
+
+
+
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
+	private updateIndicator() {
+		// this.pluginIndicator.setText(`Romaji - ${this.isPluginOn ? 'On' : 'Off'}`);
+		if (this.isPluginOn) {
+			this.pluginIndicator.setText(`Romaji ✓`);
+		} else {
+			this.pluginIndicator.setText(`Romaji ✗`);
+		}
+	}
 	onunload() {
 
 	}
@@ -108,9 +136,9 @@ class SampleModal extends Modal {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: RomajiPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: RomajiPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
