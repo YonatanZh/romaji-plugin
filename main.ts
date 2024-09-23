@@ -66,7 +66,7 @@ export default class RomajiPlugin extends Plugin {
 
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.registerInterval(window.setInterval(() => console.clear(), 60 * 1000));
 	}
 
 	private updateIndicator() {
@@ -79,10 +79,18 @@ export default class RomajiPlugin extends Plugin {
 	}
 
 	private handleChange = (editor: Editor, view: MarkdownView) => {
-		const cursor = editor.getCursor();
-		const lineContent = editor.getLine(cursor.line).slice(0, cursor.ch);
-		console.log(lineContent);
+		const newContent = editor.getValue();
+		const diff = this.getDiff(this.previousContent, newContent);
+		this.previousContent = newContent;
+		console.log('New addition: ', diff);
 	}
+
+	private getDiff(oldContent: string, newContent: string): string {
+        if (newContent.length > oldContent.length) {
+            return newContent.slice(oldContent.length);
+        }
+        return '';
+    }
 	onunload() {
 
 	}
