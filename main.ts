@@ -15,6 +15,7 @@ export default class RomajiPlugin extends Plugin {
 	settings: RomajiPluginSettings;
 	pluginIndicator: HTMLElement;
 	isPluginOn = false;
+	previousContent = "";
 
 	async onload() {
 		await this.loadSettings();
@@ -22,10 +23,18 @@ export default class RomajiPlugin extends Plugin {
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		this.pluginIndicator = this.addStatusBarItem();
 		this.updateIndicator();
-		this.app.workspace.on('editor-change', (editor: Editor) => {
-			const cursor = editor.getCursor();
-			const wordStart = editor.getCursor('from');
-		});
+
+		// This grabs the text of the file that is being opened
+		this.app.workspace.on('file-open', (file) => {
+            const activeLeaf = this.app.workspace.activeLeaf;
+            if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+                this.previousContent = activeLeaf.view.editor.getValue();
+				console.log(this.previousContent);
+            }
+        });
+
+		// This calls the function handleChange whenever the editor changes
+		this.app.workspace.on('editor-change', this.handleChange);
 
 		this.addCommand({
 			id: 'live-translate-switch',
@@ -67,6 +76,12 @@ export default class RomajiPlugin extends Plugin {
 		} else {
 			this.pluginIndicator.setText(`Romaji ✗`);
 		}
+	}
+
+	private handleChange = (editor: Editor, view: MarkdownView) => {
+		const cursor = editor.getCursor();
+		const lineContent = editor.getLine(cursor.line).slice(0, cursor.ch);
+		console.log(lineContent);
 	}
 	onunload() {
 
