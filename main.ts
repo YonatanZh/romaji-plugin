@@ -93,8 +93,6 @@ export default class RomajiPlugin extends Plugin {
 				this.toTranslate += diff;
 				this.translate(editor);
 			}
-			// todo dill with spacebar - i.e. insert a japanese space
-
 
 		} else {
 			return;
@@ -109,7 +107,7 @@ export default class RomajiPlugin extends Plugin {
     }
 
 	private isWhitespace(char: string): boolean {
-		return /\s/.test(char);
+		return /\s/.test(char) && char !== ' ';
 	}
 
 	private checkForN() {
@@ -117,9 +115,9 @@ export default class RomajiPlugin extends Plugin {
 	}
 
 	private translate(editor: Editor) {
-		const translated = wanakana.toHiragana(this.toTranslate);
+		const translated = wanakana.toKana(this.toTranslate, { customKanaMapping: { ' ': '　'}});
 
-		if (wanakana.isJapanese(translated)) {
+		if (wanakana.isJapanese(translated, )) {
 			const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch-this.toTranslate.length};
 			this.checkForN();
 			this.toTranslate = "";
