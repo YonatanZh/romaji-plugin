@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 import * as wanakana from 'wanakana';
 
 const VOWELS = ['a', 'i', 'u', 'e', 'o'];
@@ -30,11 +30,11 @@ export default class RomajiPlugin extends Plugin {
 
 		// This grabs the text of the file that is being opened
 		this.app.workspace.on('file-open', (file) => {
-            const activeLeaf = this.app.workspace.activeLeaf;
-            if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
-                this.previousContent = activeLeaf.view.editor.getValue();
-            }
-        });
+			const activeLeaf = this.app.workspace.activeLeaf;
+			if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+				this.previousContent = activeLeaf.view.editor.getValue();
+			}
+		});
 
 		// This calls the function handleChange whenever the editor changes
 		this.app.workspace.on('editor-change', this.handleChange);
@@ -57,16 +57,8 @@ export default class RomajiPlugin extends Plugin {
 		});
 
 
-
-
-
-
-
-
-
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
 
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
@@ -85,26 +77,26 @@ export default class RomajiPlugin extends Plugin {
 		// console.log('diff-', diff);
 
 		//todo have a problem when jibrish is written the plugin breaks
-		if(this.isPluginOn) {
+		//todo if cursor is not last character it breaks - i.e. if you write in the middle of a word or a text
+		if (this.isPluginOn && !this.isWhitespace(diff)) {
 			if (this.isN) {
 				this.specialNTranslate(editor, diff);
-			} else if (!this.isWhitespace(diff)) {
+			} else {
 				console.log("added to translate-", diff);
 				this.toTranslate += diff;
 				this.translate(editor);
 			}
-
-		} else {
-			return;
+		} else if (this.isWhitespace(diff)) {
+			this.isN = false;
 		}
 	}
 
 	private getDiff(oldContent: string, newContent: string): string {
-        if (newContent.length > oldContent.length) {
-            return newContent.slice(oldContent.length);
-        }
-        return '';
-    }
+		if (newContent.length > oldContent.length) {
+			return newContent.slice(oldContent.length);
+		}
+		return '';
+	}
 
 	private isWhitespace(char: string): boolean {
 		return /\s/.test(char) && char !== ' ';
@@ -115,10 +107,10 @@ export default class RomajiPlugin extends Plugin {
 	}
 
 	private translate(editor: Editor) {
-		const translated = wanakana.toKana(this.toTranslate, { customKanaMapping: { ' ': '　'}});
+		const translated = wanakana.toKana(this.toTranslate, {customKanaMapping: {' ': '　'}});
 
-		if (wanakana.isJapanese(translated, )) {
-			const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch-this.toTranslate.length};
+		if (wanakana.isJapanese(translated,)) {
+			const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch - this.toTranslate.length};
 			this.checkForN();
 			this.toTranslate = "";
 			editor.replaceRange(translated, pos, editor.getCursor());
@@ -128,13 +120,14 @@ export default class RomajiPlugin extends Plugin {
 
 	private specialNTranslate(editor: Editor, diff: string) {
 		if (VOWELS.some(vowel => vowel === diff)) {
-			this.toTranslate = "n"+diff;
+			this.toTranslate = "n" + diff;
 			this.isN = false;
 		} else if (diff === "n") {
 			this.toTranslate = diff;
 		}
 		this.translate(editor);
 	}
+
 	onunload() {
 
 	}
@@ -153,6 +146,7 @@ export default class RomajiPlugin extends Plugin {
 
 class SampleModal extends Modal {
 	s = "Woah!";
+
 	constructor(app: App, s?: string) {
 		super(app);
 		if (s) {
