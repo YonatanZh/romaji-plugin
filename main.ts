@@ -1,6 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import * as wanakana from 'wanakana';
 
+const VOWELS = ['a', 'i', 'u', 'e', 'o'];
+
 // Remember to rename these classes and interfaces!
 
 interface RomajiPluginSettings {
@@ -16,32 +18,33 @@ export default class RomajiPlugin extends Plugin {
 	pluginIndicator: HTMLElement;
 	isPluginOn = false;
 	previousContent = "";
+	toTranslate = "";
 
 	async onload() {
 		await this.loadSettings();
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		this.pluginIndicator = this.addStatusBarItem();
-		this.updateIndicator();
+		this.updateState();
 
 		// This grabs the text of the file that is being opened
 		this.app.workspace.on('file-open', (file) => {
             const activeLeaf = this.app.workspace.activeLeaf;
             if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
                 this.previousContent = activeLeaf.view.editor.getValue();
-				console.log(this.previousContent);
             }
         });
 
 		// This calls the function handleChange whenever the editor changes
 		this.app.workspace.on('editor-change', this.handleChange);
 
+
 		this.addCommand({
 			id: 'live-translate-switch',
 			name: 'activate live translate',
 			callback: () => {
 				this.isPluginOn = !this.isPluginOn;
-				this.updateIndicator();
+				this.updateState();
 			}
 		});
 
@@ -49,7 +52,7 @@ export default class RomajiPlugin extends Plugin {
 		// when pressing the status bar item, the plugin will toggle the isPluginOn variable
 		this.registerDomEvent(this.pluginIndicator, 'click', (evt: MouseEvent) => {
 			this.isPluginOn = !this.isPluginOn;
-			this.updateIndicator();
+			this.updateState();
 		});
 
 
@@ -69,20 +72,38 @@ export default class RomajiPlugin extends Plugin {
 		this.registerInterval(window.setInterval(() => console.clear(), 60 * 1000));
 	}
 
-	private updateIndicator() {
-		// this.pluginIndicator.setText(`Romaji - ${this.isPluginOn ? 'On' : 'Off'}`);
-		if (this.isPluginOn) {
-			this.pluginIndicator.setText(`Romaji ✓`);
-		} else {
-			this.pluginIndicator.setText(`Romaji ✗`);
-		}
+	private updateState() {
+		this.pluginIndicator.setText(`Romaji ${this.isPluginOn ? '✓' : '✗'}`);
+		this.toTranslate = "";
 	}
 
 	private handleChange = (editor: Editor, view: MarkdownView) => {
 		const newContent = editor.getValue();
 		const diff = this.getDiff(this.previousContent, newContent);
 		this.previousContent = newContent;
-		console.log('New addition: ', diff);
+		console.log('diff-', diff);
+		//todo am i not cleared for ctrl+a and delete?
+
+		//todo have a problem with all the n' letters
+
+		//todo have a problem when jibrish is written the plugin breaks
+		if(this.isPluginOn) {
+			if (!this.isWhitespace(diff)) {
+				console.log("added to translate-", diff);
+				this.toTranslate += diff;
+			}
+
+			const translated = wanakana.toHiragana(this.toTranslate);
+			if (wanakana.isJapanese(translated)) {
+				const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch-this.toTranslate.length};
+				// console.log(pos);
+				this.toTranslate = "";
+				editor.replaceRange(translated, pos, editor.getCursor());
+				console.log('res-', translated);
+			}
+		} else {
+			return;
+		}
 	}
 
 	private getDiff(oldContent: string, newContent: string): string {
@@ -91,6 +112,10 @@ export default class RomajiPlugin extends Plugin {
         }
         return '';
     }
+
+	private isWhitespace(char: string): boolean {
+		return /\s/.test(char);
+	}
 	onunload() {
 
 	}
