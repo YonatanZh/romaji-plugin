@@ -19,6 +19,7 @@ export default class RomajiPlugin extends Plugin {
 	isPluginOn = false;
 	previousContent = "";
 	toTranslate = "";
+	isN = false;
 
 	async onload() {
 		await this.loadSettings();
@@ -81,26 +82,20 @@ export default class RomajiPlugin extends Plugin {
 		const newContent = editor.getValue();
 		const diff = this.getDiff(this.previousContent, newContent);
 		this.previousContent = newContent;
-		console.log('diff-', diff);
-		//todo am i not cleared for ctrl+a and delete?
-
-		//todo have a problem with all the n' letters
+		// console.log('diff-', diff);
 
 		//todo have a problem when jibrish is written the plugin breaks
 		if(this.isPluginOn) {
-			if (!this.isWhitespace(diff)) {
+			if (this.isN) {
+				this.specialNTranslate(editor, diff);
+			} else if (!this.isWhitespace(diff)) {
 				console.log("added to translate-", diff);
 				this.toTranslate += diff;
+				this.translate(editor);
 			}
+			// todo dill with spacebar - i.e. insert a japanese space
 
-			const translated = wanakana.toHiragana(this.toTranslate);
-			if (wanakana.isJapanese(translated)) {
-				const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch-this.toTranslate.length};
-				// console.log(pos);
-				this.toTranslate = "";
-				editor.replaceRange(translated, pos, editor.getCursor());
-				console.log('res-', translated);
-			}
+
 		} else {
 			return;
 		}
@@ -115,6 +110,32 @@ export default class RomajiPlugin extends Plugin {
 
 	private isWhitespace(char: string): boolean {
 		return /\s/.test(char);
+	}
+
+	private checkForN() {
+		this.isN = this.toTranslate[this.toTranslate.length - 1] === "n";
+	}
+
+	private translate(editor: Editor) {
+		const translated = wanakana.toHiragana(this.toTranslate);
+
+		if (wanakana.isJapanese(translated)) {
+			const pos = {line: editor.getCursor().line, ch: editor.getCursor().ch-this.toTranslate.length};
+			this.checkForN();
+			this.toTranslate = "";
+			editor.replaceRange(translated, pos, editor.getCursor());
+			console.log('res-', translated);
+		}
+	}
+
+	private specialNTranslate(editor: Editor, diff: string) {
+		if (VOWELS.some(vowel => vowel === diff)) {
+			this.toTranslate = "n"+diff;
+			this.isN = false;
+		} else if (diff === "n") {
+			this.toTranslate = diff;
+		}
+		this.translate(editor);
 	}
 	onunload() {
 
